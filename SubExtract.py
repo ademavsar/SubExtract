@@ -1,35 +1,41 @@
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 import subprocess
 
-def select_videos():
-    global video_paths
-    video_paths = filedialog.askopenfilenames(filetypes=[("Video files", "*.mkv *.mp4")])
-    videos_label.config(text=f'{len(video_paths)} video dosyası seçildi.')
+def select_files():
+    global selected_files
+    selected_files = filedialog.askopenfilenames(title="Video Dosyalarını Seçin",
+                                                  filetypes=[("Video Dosyaları", "*.mp4 *.mkv *.avi")])
+    files_label.config(text=f"Seçilen Dosyalar: {len(selected_files)}")
 
 def extract_subtitles():
-    for video_path in video_paths:
-        output_file = video_path.rsplit('.', 1)[0] + '.srt'
-        command = f'ffmpeg -i "{video_path}" -map 0:s:0 -c:s copy "{output_file}"'
-        subprocess.run(command, shell=True)
-    result_label.config(text=f'{len(video_paths)} video dosyasından altyazı çıkarıldı.')
+    if not selected_files:
+        messagebox.showwarning("Uyarı", "Lütfen önce dosya(lar) seçin!")
+        return
+    
+    for file in selected_files:
+        output_file = file.rsplit('.', 1)[0] + '.srt'
+        subprocess.run(['ffmpeg', '-i', file, '-map', '0:s:0', '-c:s', 'srt', output_file], check=True)
+    
+    messagebox.showinfo("Başarılı", "Altyazılar başarıyla çıkarıldı.")
 
-app = tk.Tk()
-app.title('FFmpeg Toplu Altyazı Çıkarıcı')
-app.geometry('400x200')  # Pencere genişliği 400px olarak ayarlandı.
+# GUI Başlat
+root = tk.Tk()
+root.title("Altyazı Çıkarıcı")
+root.geometry("300x150")
 
-video_paths = []
+selected_files = []
 
-videos_button = tk.Button(app, text='Videoları Seç', command=select_videos)
-videos_button.pack(pady=10)
+# Seçim butonu
+select_button = tk.Button(root, text="Dosya Seç", command=select_files)
+select_button.pack(pady=10)
 
-videos_label = tk.Label(app, text='Henüz video seçilmedi.')
-videos_label.pack(pady=5)
+# Seçilen dosyaları göster
+files_label = tk.Label(root, text="Seçilen Dosyalar: 0")
+files_label.pack(pady=5)
 
-extract_button = tk.Button(app, text='Altyazıları Çıkar', command=extract_subtitles)
-extract_button.pack(pady=10)
+# Başlatma butonu
+start_button = tk.Button(root, text="Altyazı Çıkar", command=extract_subtitles)
+start_button.pack(pady=10)
 
-result_label = tk.Label(app, text='Henüz bir işlem yapılmadı.')
-result_label.pack(pady=5)
-
-app.mainloop()
+root.mainloop()
